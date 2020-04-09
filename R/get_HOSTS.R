@@ -10,6 +10,9 @@ naba.sp<-read.csv('/Users/collnell/Dropbox/Projects/NABA/NABA-HOSTS/data/NABA.bu
 
 # access HOSTS ------------------------------------------------------------
 
+## this is the web address for results form Agraulis vanillae, can use to search other species by replacing genus and species name
+page.3<-'https://www.nhm.ac.uk/our-science/data/hostplants/search/list.dsml?PSpeciesqtype=starts+with&PFamilyqtype=starts+with&Species=vanillae&sort=Family&Familyqtype=starts+with&beginIndex=60&Speciesqtype=contains&Genus=Agraulis&Genusqtype=starts+with&PGenusqtype=starts+with&searchPageURL=index%2edsml%3fPSpeciesqtype%3dstarts%2bwith%26PFamilyqtype%3dstarts%2bwith%26Species%3dvanillae%26sort%3dFamily%26Familyqtype%3dstarts%2bwith%26Speciesqtype%3dcontains%26Genus%3dAgraulis%26Genusqtype%3dstarts%2bwith%26PGenusqtype%3dstarts%2bwith'
+
 ## searching a genus - build address for genus + species query
 http.genus<-'https://www.nhm.ac.uk/our-science/data/hostplants/search/list.dsml?searchPageURL=index.dsml&Familyqtype=starts+with&Family=&PFamilyqtype=starts+with&PFamily=&Genusqtype=equals&Genus='
 http.genus.sp<-'&PGenusqtype=starts+with&PGenus=&Speciesqtype=starts+with&Species='
@@ -21,6 +24,7 @@ naba<-naba.sp%>%
 ## input columns names for dataframe output
 host.cols<-c('LEP_family','LEP_species','HOST_family','HOST_species','HOST_country')
 
+## try parsing html for a single species
 host.records<-read_html(naba[3,'http'])%>%
   html_nodes('.dataTable_ms td')%>%
   html_text()%>%
@@ -42,15 +46,12 @@ count.recs
 
 # get_HOSTS function ------------------------------------------------------
 
+## first few functions are a part of the larger one to scrape all the host records
+
 ## function to detect whether xml nodeset is empty or not
 is_empty <- function(x) if(length(x) == 0) TRUE else FALSE
 
-read_html(http)%>%
-  html_nodes('td')%>%
-  html_text()
-host.records
-
-## process htmml for pages 2+
+## function to process htmml for pages 2+
 ## recs is the number starting at it
 html_to_data<-function(name.genus, name.sp, recs){
   page.return<-page.3%>%
@@ -67,21 +68,23 @@ html_to_data<-function(name.genus, name.sp, recs){
 
 }
 
-html_to_data('Papilio','glaucus', '120')
+## FUCNTION -- given an genus and species name, create http and pull records
 
 get_HOSTS<-function(http, name.genus, name.sp){
   
+  
+  ## read in table
   host.records<-read_html(http)%>%
     html_nodes('.dataTable_ms td')
   
-  ## how many records total?
+  ## collect data on number of records in database
   count.recs<-read_html(http)%>%
     html_nodes('.RecSetLoc')%>%
     html_text()%>%
     str_extract('Records 1 - (.+) of (.+)')%>%
-    word(6)%>%as.numeric()
+    word(6)%>%as.numeric()%>%unique()
   
-  
+  # check for data in table
   if (is_empty(host.records) == TRUE){  ## what to do if there are no records for the species
     
     # return empty row with species name
@@ -97,58 +100,90 @@ get_HOSTS<-function(http, name.genus, name.sp){
       matrix(ncol = 5, byrow = TRUE)%>%
       data.frame()%>%
       setNames(host.cols);beep()
+    print(paste(name.genus, name.sp))
     
-    if (count.recs > 30){ ## what to do if there are multiple pages of records
+    if (length(host.records$HOST_family) == 30){ ## what to do if there are multiple pages of records
       
       ## replace genus and species names and read in html
       host.page.2<-html_to_data(name.genus, name.sp, recs='30')
       host.records<-rbind(host.records, host.page.2)
-  
-      ## now jsut repeating this for multiple pages
       # would be better to iterate as many times for a given species as needed 
+    } 
+    if (length(host.records$HOST_family) == 60){
+      host.page.3<-html_to_data(name.genus, name.sp, recs='60')
+      host.records<-rbind(host.records, host.page.3)
       
-      if(count.recs > 60){
-        host.page.3<-html_to_data(name.genus, name.sp, recs='60')
-        host.records<-rbind(host.records, host.page.3)
-        
-        if(count.recs >90){
-          host.page.4<-html_to_data(name.genus, name.sp, recs='90')
-          host.records<-rbind(host.records, host.page.4)
-          
-          if(count.recs > 120){
-            host.page.5<-html_to_data(name.genus, name.sp, recs='120')
-            host.records<-rbind(host.records, host.page.5)
-          }
-        }
-      }
-      return(host.records)
-    }else { ## what to do to read in multiple pages
-      return(host.records)
+    } 
+    if (length(host.records$HOST_family) == 90){
+      host.page.4<-html_to_data(name.genus, name.sp, recs='90')
+      host.records<-rbind(host.records, host.page.4)
+      
+    } 
+    if (length(host.records$HOST_family) == 120){
+      host.page.5<-html_to_data(name.genus, name.sp, recs='120')
+      host.records<-rbind(host.records, host.page.5)
+      
+    }
+    if (length(host.records$HOST_family) == 150){
+      host.page.6<-html_to_data(name.genus, name.sp, recs='150')
+      host.records<-rbind(host.records, host.page.6)
+      
+    }
+    if (length(host.records$HOST_family) == 180){
+      host.page.7<-html_to_data(name.genus, name.sp, recs='180')
+      host.records<-rbind(host.records, host.page.7)
+      
+    }
+    if (length(host.records$HOST_family) == 210){
+      host.page.8<-html_to_data(name.genus, name.sp, recs='210')
+      host.records<-rbind(host.records, host.page.8)
+      
+    }
+    if (length(host.records$HOST_family) == 240){
+      host.page.9<-html_to_data(name.genus, name.sp, recs='240')
+      host.records<-rbind(host.records, host.page.9)
+      
+    }
+    if (length(host.records$HOST_family) == 270){
+      host.page.10<-html_to_data(name.genus, name.sp, recs='270')
+      host.records<-rbind(host.records, host.page.10)
+      
+    }
+    if (length(host.records$HOST_family) == 300){
+      host.page.11<-html_to_data(name.genus, name.sp, recs='300')
+      host.records<-rbind(host.records, host.page.11)
+      
+    }
+    if (length(host.records$HOST_family) == 330){
+      host.page.12<-html_to_data(name.genus, name.sp, recs='330')
+      host.records<-rbind(host.records, host.page.12)
+      
     }
   }
+  return(host.records)
 }
 
 ## test her out
-
-get_HOSTS(http=naba[444,'http'], name.genus='Papilio',name.sp='glaucus') # has 122 records
-
-
-## works for species that are in and not
-
+get_HOSTS(http=naba[635,'http'], name.genus='Vanessa',name.sp='cardui') # has 122 records
 
 # search HOSTS of NABA species --------------------------------------------
 str(naba)
 
-host.output<-lapply(1:length(naba$http), function(x)get_HOSTS(http=naba[x, 'http'], name.genus=naba[x, 'Genus'], name.sp=naba[x, 'Species']))
-str(host.output)
+host.output<-lapply(1:length(naba$http), function(x)get_HOSTS(http=naba[x, 'http'], name.genus=naba[x, 'Genus'], name.sp=naba[x, 'Species'])) # takes a few minutres
+str(host.output, max.level=1)
 
 ## what to return if there are several pages??
 
 host.df<-host.output%>%
-  bind_rows()
-str(host.df)  #4957 rows
+  bind_rows()%>%
+  rbind(get_HOSTS(http=naba[635,'http'], name.genus='Vanessa',name.sp='cardui'))%>%
+  distinct(LEP_family, LEP_species, HOST_family, HOST_species, HOST_country)
+str(host.df)  # 6328 rows
 
-write.csv(host.df, )
+length(unique(host.df$LEP_species)) #648
+
+
+write.csv(host.df, '/Users/collnell/Dropbox/Projects/NABA/NABA-HOSTS/data/NABA_hosts.csv', row.names=FALSE)
 
 # explore data ------------------------------------------------------------
 
@@ -158,66 +193,20 @@ record.df<-host.df%>%
   group_by(LEP_species, group)%>%
   summarize(rows = length(HOST_species))%>%
   mutate(rows = ifelse(group == 'no data', 0, rows))
-
-record.df%>%filter(rows == 0)
-## 210 without any host records
-# but could some be due name changes? these might be worth searching further in ITIS
-
-record.df%>%filter(rows == 30)%>%view
-## 2 species that have more than 30 rows. ie. went onto 2 pages, need to search second page
-
-## each page had up to 30 rows
+record.df
 
 ## sample addresses from species
-name.genus<-'Ascia'
-name.sp<-'monuste'
-page.1<-'https://www.nhm.ac.uk/our-science/data/hostplants/search/list.dsml?searchPageURL=index.dsml&Familyqtype=starts+with&Family=&PFamilyqtype=starts+with&PFamily=&Genusqtype=equals&Genus=Ascia&PGenusqtype=starts+with&PGenus=&Speciesqtype=equals&Species=monuste&PSpeciesqtype=starts+with&PSpecies=&Country=&sort=Family'
 page.3<-'https://www.nhm.ac.uk/our-science/data/hostplants/search/list.dsml?PSpeciesqtype=starts+with&PFamilyqtype=starts+with&Species=vanillae&sort=Family&Familyqtype=starts+with&beginIndex=60&Speciesqtype=contains&Genus=Agraulis&Genusqtype=starts+with&PGenusqtype=starts+with&searchPageURL=index%2edsml%3fPSpeciesqtype%3dstarts%2bwith%26PFamilyqtype%3dstarts%2bwith%26Species%3dvanillae%26sort%3dFamily%26Familyqtype%3dstarts%2bwith%26Speciesqtype%3dcontains%26Genus%3dAgraulis%26Genusqtype%3dstarts%2bwith%26PGenusqtype%3dstarts%2bwith'
 
-## replace model species with search species name
-name.genus.new<-'Agraulis'
-name.sp.new<-'vanillae'
+## plot it
 
-## replace genus and species names and read in html
-host.page.2<-read_html(str_replace_all(str_replace_all(page.2, 'Ascia', name.genus.new),'monuste', name.sp.new))%>%
-  html_nodes('.dataTable_ms td')%>%
-  html_text()%>%
-  matrix(ncol = 5, byrow = TRUE)%>%
-  data.frame()%>%
-  setNames(host.cols)
-host.page.2
-
-host.page.3<-page.3%>%
-  str_replace_all('Agraulis',name.genus)%>%
-  str_replace_all('vanillae',name.sp)%>%
-  read_html()%>%
-  html_nodes('.dataTable_ms td')%>%
-  html_text()%>%
-  matrix(ncol = 5, byrow = TRUE)%>%
-  data.frame()%>%
-  setNames(host.cols)
-
-
-#read_html(str_replace_all(str_replace_all))
-
-host.page.4<-gsub('60', '90', page.3)%>%
-  str_replace_all('Agraulis',name.genus)%>%
-  str_replace_all('vanillae',name.sp)%>%
-  read_html()%>%
-  html_nodes('.dataTable_ms td')%>%
-  html_text()%>%
-  matrix(ncol = 5, byrow = TRUE)%>%
-  data.frame()%>%
-  setNames(host.cols)
-host.page.4
-
-page.3%>%
-  str_replace_all('60', '30')%>%
-  str_replace_all('Agraulis','Papilio')%>%
-  str_replace_all('vanillae','glaucus')%>%
-  read_html()%>%
-  html_nodes('.dataTable_ms td')%>%
-  html_text()%>%
-  matrix(ncol = 5, byrow = TRUE)%>%
-  data.frame()%>%
-  setNames(host.cols)
+## distribution of diet breadth
+host.df%>%
+  group_by(LEP_family, LEP_species)%>%
+  summarize(db_fam = length(unique(HOST_family)), db_sp = length(unique(HOST_species)), records = length(LEP_family))%>%
+  group_by(LEP_family)%>%
+  summarize(db_fam_mean=mean(db_fam), db_sp_mean = mean(db_sp), recs=sum(records),
+            db_fam_se=se(db_fam), db_sp_se=se(db_sp))%>%filter(!is.na(LEP_family))%>%
+  ggplot(aes(LEP_family, db_sp_mean))+geom_errorbar(aes(ymin=db_sp_mean-db_sp_se, ymax=db_sp_mean+db_sp_se), width=.1)+geom_point(size=3, shape=21, fill='white', stroke=1)+coord_flip()+labs(y='Host plant species richness', x='')
+## something has over 30 families?
+# most are around 1 
