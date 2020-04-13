@@ -185,6 +185,12 @@ length(unique(host.df$LEP_species)) #648
 
 write.csv(host.df, '/Users/collnell/Dropbox/Projects/NABA/NABA-HOSTS/data/NABA_hosts.csv', row.names=FALSE)
 
+host.df<-read.csv('/Users/collnell/Dropbox/Projects/NABA/NABA-HOSTS/data/NABA_hosts.csv')
+
+host.df%>%
+  filter(is.na(HOST_species))%>%
+  distinct(LEP_species)
+
 # explore data ------------------------------------------------------------
 
 # number of host records per species
@@ -202,11 +208,29 @@ page.3<-'https://www.nhm.ac.uk/our-science/data/hostplants/search/list.dsml?PSpe
 
 ## distribution of diet breadth
 host.df%>%
+  filter(!is.na(HOST_family))%>%
   group_by(LEP_family, LEP_species)%>%
   summarize(db_fam = length(unique(HOST_family)), db_sp = length(unique(HOST_species)), records = length(LEP_family))%>%
   group_by(LEP_family)%>%
   summarize(db_fam_mean=mean(db_fam), db_sp_mean = mean(db_sp), recs=sum(records),
             db_fam_se=se(db_fam), db_sp_se=se(db_sp))%>%filter(!is.na(LEP_family))%>%
-  ggplot(aes(LEP_family, db_sp_mean))+geom_errorbar(aes(ymin=db_sp_mean-db_sp_se, ymax=db_sp_mean+db_sp_se), width=.1)+geom_point(size=3, shape=21, fill='white', stroke=1)+coord_flip()+labs(y='Host plant species richness', x='')
+  ggplot(aes(LEP_family, db_fam_mean))+
+  geom_errorbar(aes(ymin=db_fam_mean-db_fam_se, ymax=db_fam_mean+db_fam_se), width=.1)+
+  geom_point(size=3, shape=21, fill='white', stroke=1)+
+  coord_flip()+labs(y='Host plant species richness', x='')
 ## something has over 30 families?
 # most are around 1 
+host.df%>%filter(LEP_family == 'Hesperiidae')
+
+naba$HERB_sp<-paste(naba$Genus, naba$Species)
+## compre to CFIS data
+intersect(unique(traits$HERB_sp), unique(naba$HERB_sp))
+?setdiff()
+
+# Hesperiidae - Epargyreus clarus, Erynnis icelus
+# Lycaenidae - Callophrys eryphon, Callophrys niphon, atyrium calanus, Satyrium caryaevorum, Satyrium liparops, 
+# Nymphalidae - Asterocampa celtis, Limenitis arthemis, Limenitis archippus, Nymphalis antiopa, Polygonia comma, Polygonia faunus, Polygonia interrogationis, Polygonia saatyrus, Vanessa cardui
+# Papilionidae - Papilio canadensis, Papilio eurymedon, Papilio rutulus
+# Pieridae - Neophasia menapia
+
+
